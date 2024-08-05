@@ -81,13 +81,13 @@ export async function describeImage(imagePath: string) {
     }
 }
 
+
 // Function to describe images using gpt-4o-mini
-export async function describeImageWithChat(systemPrompt: string, userPrompt: string, imagePaths: string[]) {
-    const imagesBase64 = imagePaths.map(path => imageToBase64(path));
+export async function describeImageWithChat(systemPrompt: string, userPrompt: string, imagesBase64: string[]) {
     const messages = imagesBase64.map((imageBase64, index) => ({
         type: "image_url",
         image_url: {
-            url: imageBase64
+            url: `data:image/jpeg;base64,${imageBase64}` // Ensure the base64 string is correctly formatted
         }
     }));
     
