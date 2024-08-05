@@ -100,9 +100,10 @@ export const DeviceView = React.memo((props: { device: BluetoothRemoteGATTServer
 
     React.useEffect(() => {
         if (agentState.answer) {
-            textToSpeech(agentState.answer)
+            console.log('Agent answer received:', agentState.answer);
+            textToSpeech(agentState.answer);
         }
-    }, [agentState.answer])
+    }, [agentState.answer]);
 
     return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { AsyncLock } from "../utils/lock";
-import { imageDescription, llamaFind } from "./imageDescription";
+import { imageDescription, llamaFind, describeImagesWithChat } from "./imageDescription"; // Import the new function
 import { startAudio } from '../modules/openai';
 
 type AgentState = {
@@ -41,9 +41,9 @@ export class Agent {
 
     async answer(question: string) {
         try {
-            startAudio()
-        } catch(error) {
-            console.log("Failed to start audio")
+            startAudio();
+        } catch (error) {
+            console.log("Failed to start audio");
         }
         if (this.#state.loading) {
             return;
@@ -51,14 +51,18 @@ export class Agent {
         this.#state.loading = true;
         this.#notify();
         await this.#lock.inLock(async () => {
-            let combined = '';
-            let i = 0;
-            for (let p of this.#photos) {
-                combined + '\n\nImage #' + i + '\n\n';
-                combined += p.description;
-                i++;
-            }
-            let answer = await llamaFind(question, combined);
+            const systemPrompt = `
+                You are a smart AI that needs to read through descriptions of images and answer user's questions.
+                DO NOT mention the images, scenes, or descriptions in your answer, just answer the question.
+                DO NOT try to generalize or provide possible scenarios.
+                ONLY use the information in the description of the images to answer the question.
+                BE concise and specific.
+            `;
+            const userPrompt = question;
+            const images = this.#photos.map(p => p.photo);
+            console.log('Sending request to describeImagesWithChat:', { systemPrompt, userPrompt, images });
+            let answer = await describeImagesWithChat(systemPrompt, userPrompt, images);
+            console.log('Received answer from describeImagesWithChat:', answer);
             this.#state.answer = answer;
             this.#state.loading = false;
             this.#notify();
@@ -71,7 +75,6 @@ export class Agent {
             l();
         }
     }
-
 
     use() {
         const [state, setState] = React.useState(this.#stateCopy);
