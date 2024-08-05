@@ -2,6 +2,7 @@ import { KnownModel, ollamaInference } from "../modules/ollama";
 import { groqRequest } from "../modules/groq-llama3";
 import { gptRequest } from "../modules/openai";
 import { describeImageWithChat } from "../modules/openai"; // Import the function
+import base64 from 'base64-js';
 
 export async function imageDescription(src: Uint8Array, model: KnownModel = 'moondream:1.8b-v2-fp16'): Promise<string> {
     return ollamaInference({
@@ -55,7 +56,7 @@ export async function openAIFind(question: string, images: string): Promise<stri
 
 // New function to process images and user questions at once using describeImageWithChat
 export async function describeImagesWithChat(systemPrompt: string, userPrompt: string, images: Uint8Array[]): Promise<string> {
-    const base64Images = images.map(image => Buffer.from(image).toString('base64'));
+    const base64Images = images.map(image => base64.fromByteArray(image));
     const response = await describeImageWithChat(systemPrompt, userPrompt, base64Images);
     return response; // Adjust this according to the actual response structure
 }

@@ -1,6 +1,7 @@
 import axios from "axios";
 import fs from "fs";
 import { keys } from "../keys";
+import base64 from 'base64-js';
 
 // Function to convert image to base64
 function imageToBase64(path: string) {
@@ -82,6 +83,7 @@ export async function describeImage(imagePath: string) {
 }
 
 
+
 // Function to describe images using gpt-4o-mini
 export async function describeImageWithChat(systemPrompt: string, userPrompt: string, imagesBase64: string[]) {
     const messages = imagesBase64.map((imageBase64, index) => ({
@@ -90,34 +92,38 @@ export async function describeImageWithChat(systemPrompt: string, userPrompt: st
             url: `data:image/jpeg;base64,${imageBase64}` // Ensure the base64 string is correctly formatted
         }
     }));
-    
+
+    const payload = {
+        model: "gpt-4o-mini",
+        messages: [
+            { role: "system", content: systemPrompt },
+            {
+                role: "user",
+                content: [
+                    {
+                        type: "text",
+                        text: userPrompt
+                    },
+                    ...messages // Spread the messages array to include each image
+                ]
+            }
+        ],
+        max_tokens: 300
+    };
+
+    console.log("Request Payload:", JSON.stringify(payload, null, 2));
+
     try {
-        const response = await axios.post("https://api.openai.com/v1/chat/completions", {
-            model: "gpt-4o-mini",
-            messages: [
-                { role: "system", content: systemPrompt },
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "text",
-                            text: userPrompt
-                        },
-                        ...messages
-                    ]
-                }
-            ],
-            max_tokens: 300
-        }, {
+        const response = await axios.post("https://api.openai.com/v1/chat/completions", payload, {
             headers: {
                 'Authorization': `Bearer ${keys.openai}`,  // Replace YOUR_API_KEY with your actual OpenAI API key
                 'Content-Type': 'application/json'
             },
         });
-        return response.data;
+        return response.data.choices[0].message.content; // Return the content field from the response
     } catch (error) {
-        console.error("Error in describeImageWithChat:", error);
-        return null; // or handle error differently
+        console.error("Error in describeImageWithChat:", error.response ? error.response.data : error.message);
+        throw error; // Re-throw the error after logging it
     }
 }
 
@@ -141,20 +147,6 @@ export async function gptRequest(systemPrompt: string, userPrompt: string) {
         return null; // or handle error differently
     }
 }
-
-// Example usage of the new describeImageWithChat function
-const imagePaths = ["path_to_your_image1.jpg", "path_to_your_image2.jpg"];
-const systemPrompt = `
-    You are a smart AI that needs to read through descriptions of images and answer user's questions.
-    DO NOT mention the images, scenes, or descriptions in your answer, just answer the question.
-    DO NOT try to generalize or provide possible scenarios.
-    ONLY use the information in the description of the images to answer the question.
-    BE concise and specific.
-`;
-const userPrompt = "What’s in these images?";
-describeImageWithChat(systemPrompt, userPrompt, imagePaths)
-    .then(response => console.log(response))
-    .catch(error => console.error(error));
 
 textToSpeech("Hello I am an agent")
 console.info(gptRequest(
